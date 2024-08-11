@@ -1,9 +1,6 @@
 use thiserror::Error as ThisError;
 
 /// An error type that encapsulates anything that can go wrong in this library.
-///
-/// Currently, the only variant is [`JobExists`](Error::JobExists), though more
-/// may be added in the future.
 #[derive(Debug, ThisError)]
 #[non_exhaustive]
 pub enum Error {
@@ -11,6 +8,10 @@ pub enum Error {
     /// specified job ID already exists.
     #[error("A job with that ID already exists")]
     JobExists,
+    /// Returned by [`Job::wait`](crate::Job::wait) when the job returned an
+    /// error or panicked.
+    #[error("Job failed")]
+    JobFailed,
 }
 
 /// A type that represents either success or an [`Error`].

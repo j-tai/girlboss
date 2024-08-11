@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::RwLock;
 
-use crate::{Error, Job, Monitor, Result};
+use crate::{Error, Job, JobOutput, Monitor, Result};
 
 /// A job manager, which stores a mapping of job IDs to [`Job`]s.
 ///
@@ -38,10 +38,13 @@ impl<K: Ord> Girlboss<K> {
     /// If there is already a job with the same ID, *and the job is still
     /// running (not finished)*, then this method will return `Err`. Otherwise,
     /// it returns `Ok` with a reference to the job.
+    ///
+    /// See [`Job::start`] for information about the job function.
     pub async fn start<F, Fut>(&self, id: impl Into<K>, func: F) -> Result<Job>
     where
         F: FnOnce(Monitor) -> Fut,
-        Fut: Future<Output = ()> + Send + 'static,
+        Fut: Future + Send + 'static,
+        <Fut as Future>::Output: JobOutput,
     {
         let mut jobs = self.jobs.write().await;
         match jobs.entry(id.into()) {

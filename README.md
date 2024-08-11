@@ -31,7 +31,7 @@ async fn main() {
     assert_eq!(job.status().message(), "Computing the meaning of life...");
 
     // Wait for the job to complete:
-    job.wait().await;
+    job.wait().await.expect("job failed");
     assert_eq!(job.status().message(), "The meaning of life is 42");
 
     // See how long the job took:
@@ -68,7 +68,7 @@ async fn main() {
     assert_eq!(job.status().message(), "Computing the meaning of life...");
 
     // Wait for the job to complete:
-    job.wait().await;
+    job.wait().await.expect("job failed");
     assert_eq!(job.status().message(), "The meaning of life is 42");
 
     // See how long the job took:
@@ -83,6 +83,31 @@ async fn long_running_task(mon: Monitor) {
     let meaning = 42;
 
     write!(mon, "The meaning of life is {meaning}");
+}
+```
+
+## Error handling
+
+Jobs can optionally return an error, which is then reported through the status:
+
+```rust
+use girlboss::{Job, Monitor};
+
+#[tokio::main]
+async fn main() {
+    // Start a job:
+    let job = Job::start(long_running_task);
+
+    // Wait for the job to complete:
+    job.wait().await.unwrap_err();
+    assert_eq!(job.status().message(), "Error: The meaning of life could not be found");
+    assert_eq!(job.succeeded(), false);
+}
+
+/// A long running task that we want to run in the background.
+async fn long_running_task(mon: Monitor) -> Result<(), String> {
+    write!(mon, "Computing the meaning of life...");
+    Err("The meaning of life could not be found".to_string())
 }
 ```
 

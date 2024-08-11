@@ -2,11 +2,11 @@ use std::future::Future;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
-use tokio::sync::Mutex as TokioMutex;
+use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::status::AtomicJobStatus;
-use crate::{JobStatus, Monitor};
+use crate::{Error, JobOutput, JobStatus, Monitor, Result};
 
 /// A job, either running or finished.
 ///
@@ -16,27 +16,57 @@ use crate::{JobStatus, Monitor};
 pub struct Job(Arc<JobInner>);
 
 struct JobInner {
-    handle: TokioMutex<Option<JoinHandle<()>>>,
+    handle: Mutex<Option<JoinHandle<()>>>,
     status: AtomicJobStatus,
     started_at: Instant,
-    finished_at: OnceLock<Instant>,
+    finished: OnceLock<JobFinishedInfo>,
+}
+
+#[derive(Debug)]
+struct JobFinishedInfo {
+    finished_at: Instant,
+    is_success: bool,
 }
 
 impl Job {
     /// Creates and starts a new job.
+    ///
+    /// The argument is the job function, which takes a [`Monitor`] (for
+    /// progress reporting) and returns any type that implements [`JobOutput`]
+    /// (for error reporting). See [`JobOutput`] for the complete list of types
+    /// that the function may return.
     pub fn start<F, Fut>(func: F) -> Job
     where
         F: FnOnce(Monitor) -> Fut,
-        Fut: Future<Output = ()> + Send + 'static,
+        Fut: Future + Send + 'static,
+        <Fut as Future>::Output: JobOutput,
     {
         let job = Job(Arc::new(JobInner {
-            handle: TokioMutex::new(None),
+            handle: Mutex::new(None),
             status: AtomicJobStatus::new("Starting job".into()),
             started_at: Instant::now(),
-            finished_at: OnceLock::new(),
+            finished: OnceLock::new(),
         }));
+
         let fut = func(Monitor(job.clone()));
-        *job.0.handle.try_lock().unwrap() = Some(tokio::spawn(fut));
+        let job2 = job.clone();
+        let handle = tokio::spawn(async move {
+            let output = fut.await;
+            let finished_info = JobFinishedInfo {
+                is_success: output.is_success(),
+                finished_at: Instant::now(),
+            };
+            if let Some(message) = output.into_message() {
+                job2.set_status(message.into());
+            }
+            job2.0.finished.set(finished_info).unwrap();
+        });
+
+        // This `unwrap` doesn't panic because no one else has access to the
+        // handle mutex. The job function has access to a `Monitor`, but that
+        // cannot be used to gain access to the `Job` instance and touch the
+        // handler via `wait()`.
+        *job.0.handle.try_lock().unwrap() = Some(handle);
         job
     }
 
@@ -46,13 +76,35 @@ impl Job {
     }
 
     /// Waits for this job to finish.
-    pub async fn wait(&self) {
+    ///
+    /// If the job indicated that it failed, this returns
+    /// <code>Err([Error::JobFailed])</code>. Otherwise, it returns `Ok(())`.
+    ///
+    /// If the job is already finished, then this method does nothing other than
+    /// return `Ok` or `Err` as described above.
+    pub async fn wait(&self) -> Result<()> {
         if let Some(handle) = self.0.handle.lock().await.take() {
             let result = handle.await;
             if let Err(e) = result {
                 self.set_status(format!("Internal error: {e}").into());
             }
         }
+        if self.0.finished.get().unwrap().is_success {
+            Ok(())
+        } else {
+            Err(Error::JobFailed)
+        }
+    }
+
+    /// Returns true if this job finished successfully.
+    ///
+    /// If this job is still in progress, then this returns `false`.
+    pub fn succeeded(&self) -> bool {
+        self.0
+            .finished
+            .get()
+            .map(|info| info.is_success)
+            .unwrap_or(false)
     }
 
     /// Returns the [`Instant`] that this job was started.
@@ -68,12 +120,12 @@ impl Job {
     /// that the job finished, not when the job was found to be finished by
     /// `wait`.
     pub fn finished_at(&self) -> Option<Instant> {
-        self.0.finished_at.get().copied()
+        self.0.finished.get().map(|info| info.finished_at)
     }
 
     /// Returns whether this job is finished.
     pub fn is_finished(&self) -> bool {
-        self.finished_at().is_some()
+        self.0.finished.get().is_some()
     }
 
     /// Returns the amount of wall-clock time this job has spent.
@@ -82,12 +134,7 @@ impl Job {
     /// finish. If this job is in progress, then this returns the time from
     /// start to now.
     pub fn elapsed(&self) -> Duration {
-        self.0
-            .finished_at
-            .get()
-            .copied()
-            .unwrap_or_else(Instant::now)
-            - self.0.started_at
+        self.finished_at().unwrap_or_else(Instant::now) - self.0.started_at
     }
 }
 
