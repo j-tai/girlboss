@@ -113,4 +113,4 @@ async fn long_running_task(mon: Monitor) -> Result<(), &'static str> {
 
 ## License
 
-[MIT](LICENSE)
+[MIT](./LICENSE)

@@ -1,9 +1,25 @@
+use std::process::ExitStatus;
+
 use crate::JobOutput;
 
 #[test]
 fn impl_job_output_for_unit_works() {
     let value = ();
     assert_eq!(value.is_success(), true);
+    assert_eq!(value.into_message(), None);
+}
+
+#[test]
+fn impl_job_output_for_bool_true_works() {
+    let value = true;
+    assert_eq!(value.is_success(), true);
+    assert_eq!(value.into_message(), None);
+}
+
+#[test]
+fn impl_job_output_for_bool_false_works() {
+    let value = false;
+    assert_eq!(value.is_success(), false);
     assert_eq!(value.into_message(), None);
 }
 
@@ -19,6 +35,26 @@ fn impl_job_output_for_string_works() {
     let value = "test".to_string();
     assert_eq!(value.is_success(), true);
     assert_eq!(value.into_message(), Some("test".into()));
+}
+
+#[test]
+#[cfg(unix)]
+fn impl_job_output_for_exit_status_success_works() {
+    use std::os::unix::process::ExitStatusExt;
+
+    let value = ExitStatus::from_raw(0 << 8);
+    assert_eq!(value.is_success(), true);
+    assert_eq!(value.into_message(), None);
+}
+
+#[test]
+#[cfg(unix)]
+fn impl_job_output_for_exit_status_failure_works() {
+    use std::os::unix::process::ExitStatusExt;
+
+    let value = ExitStatus::from_raw(1 << 8);
+    assert_eq!(value.is_success(), false);
+    assert!(value.into_message().is_some());
 }
 
 #[test]
