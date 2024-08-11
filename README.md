@@ -1,6 +1,10 @@
-# girlboss
+# Girlboss
 
 Girlboss is a simple async job manager with progress tracking.
+
+Girlboss allows you to start background tasks and monitor their progress. You can choose to keep track of the jobs yourself, or use the provided manager to look up jobs by whatever ID you want.
+
+For example, this can be useful in web servers where a user starts a job and periodically checks its status.
 
 ## Job manager
 
@@ -81,3 +85,7 @@ async fn long_running_task(mon: Monitor) {
     write!(mon, "The meaning of life is {meaning}");
 }
 ```
+
+## License
+
+[MIT](LICENSE)
