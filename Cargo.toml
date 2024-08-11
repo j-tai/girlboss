@@ -13,6 +13,7 @@ categories = ["asynchronous", "concurrency", "web-programming"]
 
 [dependencies]
 arc-swap = "1.7.1"
+futures = { version = "0.3.30", default-features = false, features = ["std"] }
 thiserror = "1.0.63"
 tokio = { version = "1.39.2", features = ["rt", "sync"] }
 

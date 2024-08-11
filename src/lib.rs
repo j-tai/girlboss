@@ -5,6 +5,7 @@ mod error;
 mod job;
 mod manager;
 mod status;
+mod tests;
 mod traits;
 
 pub use error::{Error, Result};

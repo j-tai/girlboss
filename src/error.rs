@@ -1,7 +1,7 @@
 use thiserror::Error as ThisError;
 
 /// An error type that encapsulates anything that can go wrong in this library.
-#[derive(Debug, ThisError)]
+#[derive(Debug, ThisError, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
     /// Returned by [`Girlboss::start`](crate::Girlboss::start) when the

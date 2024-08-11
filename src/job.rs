@@ -1,7 +1,10 @@
+use std::fmt;
 use std::future::Future;
+use std::panic::AssertUnwindSafe;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
+use futures::FutureExt;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
@@ -51,14 +54,36 @@ impl Job {
         let fut = func(Monitor(job.clone()));
         let job2 = job.clone();
         let handle = tokio::spawn(async move {
-            let output = fut.await;
-            let finished_info = JobFinishedInfo {
-                is_success: output.is_success(),
-                finished_at: Instant::now(),
+            // If the job panics, we still want to clean up the job.
+            // AssertUnwindSafe should be fine here, since whatever the future
+            // does is the user's responsibility, and we don't share any state
+            // with `fut`.
+            let result = AssertUnwindSafe(fut).catch_unwind().await;
+
+            // Did it panic?
+            let is_success = match result {
+                Ok(output) => {
+                    let success = output.is_success();
+                    if let Some(message) = output.into_message() {
+                        job2.set_status(message.into());
+                    }
+                    success
+                }
+                Err(_error) => {
+                    // There's not much I can do to make a Box<dyn Any> human
+                    // readable...
+                    job2.set_status("Error: the job panicked".into());
+                    false
+                    // Hopefully dropping the error object doesn't panic,
+                    // otherwise God help us
+                }
             };
-            if let Some(message) = output.into_message() {
-                job2.set_status(message.into());
-            }
+
+            // Record the job completion
+            let finished_info = JobFinishedInfo {
+                finished_at: Instant::now(),
+                is_success,
+            };
             job2.0.finished.set(finished_info).unwrap();
         });
 
@@ -84,10 +109,9 @@ impl Job {
     /// return `Ok` or `Err` as described above.
     pub async fn wait(&self) -> Result<()> {
         if let Some(handle) = self.0.handle.lock().await.take() {
-            let result = handle.await;
-            if let Err(e) = result {
-                self.set_status(format!("Internal error: {e}").into());
-            }
+            // If the task got cancelled for some reason, don't worry about it.
+            // Also, the task shouldn't panic because we `catch_unwind`.
+            let _ = handle.await;
         }
         if self.0.finished.get().unwrap().is_success {
             Ok(())
@@ -142,5 +166,19 @@ impl Job {
 impl Job {
     pub(crate) fn set_status(&self, status: JobStatus) {
         self.0.status.store(status);
+    }
+}
+
+impl PartialEq for Job {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::as_ptr(&self.0) == Arc::as_ptr(&other.0)
+    }
+}
+
+impl Eq for Job {}
+
+impl fmt::Debug for Job {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Job").field(&Arc::as_ptr(&self.0)).finish()
     }
 }
