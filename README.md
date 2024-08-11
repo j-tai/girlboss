@@ -24,7 +24,8 @@ async fn main() {
     let job = manager.start("myJobId", long_running_task).await.unwrap();
 
     // Look up the job by ID:
-    let job = manager.get("myJobId").await.expect("job not found");
+    let job_2 = manager.get("myJobId").await.expect("job not found");
+    assert_eq!(job, job_2);
 
     // Check the status of the job:
     sleep(Duration::from_millis(50)).await;
@@ -95,19 +96,18 @@ use girlboss::{Job, Monitor};
 
 #[tokio::main]
 async fn main() {
-    // Start a job:
     let job = Job::start(long_running_task);
 
-    // Wait for the job to complete:
     job.wait().await.unwrap_err();
     assert_eq!(job.status().message(), "Error: The meaning of life could not be found");
     assert_eq!(job.succeeded(), false);
 }
 
-/// A long running task that we want to run in the background.
-async fn long_running_task(mon: Monitor) -> Result<(), String> {
+async fn long_running_task(mon: Monitor) -> Result<(), &'static str> {
     write!(mon, "Computing the meaning of life...");
-    Err("The meaning of life could not be found".to_string())
+    // The error type can be anything that implements Display, which includes
+    // all Errors
+    Err("The meaning of life could not be found")
 }
 ```
 

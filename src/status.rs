@@ -7,7 +7,7 @@ use arc_swap::ArcSwap;
 
 use crate::Job;
 
-/// The most recently reported status of a job.
+/// A status message reported from a job.
 #[derive(Clone)]
 pub struct JobStatus(Arc<JobStatusInner>);
 
@@ -97,8 +97,7 @@ impl Monitor {
         self.0.set_status(status.into());
     }
 
-    /// For compatibility with [`write!`].
-    #[doc(hidden)]
+    /// Implementation to allow use with [`write!`].
     pub fn write_fmt(&self, args: Arguments<'_>) {
         match args.as_str() {
             Some(s) => self.report(s),

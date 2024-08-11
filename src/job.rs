@@ -122,6 +122,10 @@ impl Job {
 
     /// Returns true if this job finished successfully.
     ///
+    /// Whether the job is considered successful or not is determined by the
+    /// job's return value. See [`JobOutput`] for the allowed types of the
+    /// return value and which ones correspond to success or failure.
+    ///
     /// If this job is still in progress, then this returns `false`.
     pub fn succeeded(&self) -> bool {
         self.0

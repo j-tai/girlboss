@@ -8,13 +8,12 @@ use std::fmt::Display;
 ///
 /// The following types implement `JobOutput`:
 ///
-/// Type | Is success? | Final status message
-/// :----|:------------|:---------------------
-/// `()` | yes | none
-/// `&'static str` | yes | the string
-/// `String` | yes | the string
-/// `Result<impl JobOutput, impl Display>` | if the result is `Ok` | the value (if it produces a message) or the error
-/// `Option<impl JobOutput>` | if the result is `Some` | the value (if it's present and produces a message)
+/// Type | [`Job::succeeded`](crate::Job::succeeded) | Final status message
+/// :----|:------------------------------------------|:---------------------
+/// `()` | `true` | none
+/// `&'static str`, `String` | `true` | the string
+/// `Result<impl JobOutput, impl Display>` | [`Result::is_ok`] | the value (if it produces a message) or the error
+/// `Option<impl JobOutput>` | [`Option::is_some`] | the value (if it's present and produces a message)
 pub trait JobOutput: Sized {
     /// Returns true if this output represents a success.
     fn is_success(&self) -> bool {
