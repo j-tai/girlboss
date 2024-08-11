@@ -13,7 +13,7 @@ coverage:
 publish version:
     sed -i 's/^version = ".*/version = "{{version}}"/' Cargo.toml
     cargo test
-    git add Cargo.toml
+    git add Cargo.toml Cargo.lock
     git commit -m 'Bump version to {{version}}'
     cargo publish
     git tag 'v{{version}}' -m 'v{{version}}'
