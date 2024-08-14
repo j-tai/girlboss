@@ -24,7 +24,7 @@ pub async fn sets_status_with_write(mon: Monitor) {
 
 pub async fn sets_status_with_write_fmt(mon: Monitor) {
     let number = 42;
-    write!(mon, "number is {number}");
+    write!(mon, "tends to {number}");
     slow(mon).await;
 }
 

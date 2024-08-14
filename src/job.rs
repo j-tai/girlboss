@@ -13,8 +13,8 @@ use crate::{Error, JobOutput, JobStatus, Monitor, Result};
 
 /// A job, either running or finished.
 ///
-/// This struct is only a handle for the job. Cloning a `Job` is cheap, and
-/// dropping a `Job` will not cause it to stop running.
+/// This struct only represents a handle for the job. Cloning a `Job` is cheap,
+/// and dropping a `Job` will not cause it to stop running.
 #[derive(Clone)]
 pub struct Job(Arc<JobInner>);
 
@@ -34,10 +34,28 @@ struct JobFinishedInfo {
 impl Job {
     /// Creates and starts a new job.
     ///
-    /// The argument is the job function, which takes a [`Monitor`] (for
-    /// progress reporting) and returns any type that implements [`JobOutput`]
-    /// (for error reporting). See [`JobOutput`] for the complete list of types
-    /// that the function may return.
+    /// The argument is the job function, which is an `async` function that
+    /// takes a [`Monitor`] (for progress reporting) and returns any type that
+    /// implements [`JobOutput`] (for error reporting). See [`JobOutput`] for
+    /// the complete list of types that the function may return.
+    ///
+    /// # Examples
+    ///
+    /// Starting a new job:
+    ///
+    /// ```
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// use girlboss::Job;
+    ///
+    /// let job = Job::start(|mon| async move {
+    ///     // ... long running task goes here ...
+    ///     write!(mon, "I'm done!");
+    /// });
+    /// job.wait().await.unwrap();
+    /// assert_eq!(job.status().message(), "I'm done!");
+    /// # }
+    /// ```
     pub fn start<F, Fut>(func: F) -> Job
     where
         F: FnOnce(Monitor) -> Fut,
@@ -95,7 +113,7 @@ impl Job {
         job
     }
 
-    /// Checks the latest status message reported by this job.
+    /// Returns the latest status message reported by this job.
     pub fn status(&self) -> JobStatus {
         self.0.status.load()
     }

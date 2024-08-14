@@ -60,7 +60,7 @@ impl AtomicJobStatus {
 
 /// An object used by a running job to report its progress.
 ///
-/// Jobs can use the [`report` method](Monitor::report) or the standard
+/// Jobs can use the [`report`](Monitor::report) method or the standard
 /// library's [`write!`] macro to report messages.
 ///
 /// # Examples
@@ -90,9 +90,9 @@ impl Monitor {
     /// Reports a new status message.
     ///
     /// If your message is already a [`String`] and you are able to give
-    /// ownership of the message, then this method is avoids an allocation
-    /// compared to using [`write!`]. However, if your message is a `&str` or
-    /// needs to be [`format`]ted, then you should use [`write!`].
+    /// ownership of the message, then this method avoids an allocation compared
+    /// to using [`write!`]. However, if your message is a `&str` or needs to be
+    /// [`format`]ted, then you should use [`write!`].
     pub fn report(&self, status: impl Into<JobStatus>) {
         self.0.set_status(status.into());
     }

@@ -50,7 +50,7 @@ async fn sets_custom_status_with_write() {
 async fn sets_custom_status_with_write_fmt() {
     let job = Job::start(jobs::sets_status_with_write_fmt);
     sleep(Duration::from_millis(50)).await;
-    assert_eq!(job.status().message(), "number is 42");
+    assert_eq!(job.status().message(), "tends to 42");
 }
 
 #[tokio::test]
