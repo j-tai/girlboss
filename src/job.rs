@@ -90,7 +90,7 @@ impl Job {
                 Err(_error) => {
                     // There's not much I can do to make a Box<dyn Any> human
                     // readable...
-                    job2.set_status("Error: the job panicked".into());
+                    job2.set_status("The job panicked".into());
                     false
                     // Hopefully dropping the error object doesn't panic,
                     // otherwise God help us

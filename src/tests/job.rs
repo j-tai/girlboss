@@ -71,7 +71,7 @@ async fn succeeded_is_false_when_failed() {
     let job = Job::start(jobs::fails);
     assert_eq!(job.wait().await, Err(Error::JobFailed));
     assert_eq!(job.succeeded(), false);
-    assert_eq!(job.status().message(), "Error: oopsie");
+    assert_eq!(job.status().message(), "oopsie");
 }
 
 #[tokio::test]
@@ -79,7 +79,7 @@ async fn panic_is_caught() {
     let job = Job::start(jobs::panics);
     assert_eq!(job.wait().await, Err(Error::JobFailed));
     assert_eq!(job.succeeded(), false);
-    assert_eq!(job.status().message(), "Error: the job panicked");
+    assert_eq!(job.status().message(), "The job panicked");
 }
 
 #[tokio::test]

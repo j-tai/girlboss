@@ -73,7 +73,7 @@ impl<T: JobOutput, E: Display> JobOutput for Result<T, E> {
     fn into_message(self) -> Option<Cow<'static, str>> {
         match self {
             Ok(value) => value.into_message(),
-            Err(error) => Some(format!("Error: {error}").into()),
+            Err(error) => Some(error.to_string().into()),
         }
     }
 }

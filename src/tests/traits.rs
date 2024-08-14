@@ -68,7 +68,7 @@ fn impl_job_output_for_result_ok_works() {
 fn impl_job_output_for_result_err_works() {
     let value: Result<(), _> = Err("oopsie");
     assert_eq!(value.is_success(), false);
-    assert_eq!(value.into_message(), Some("Error: oopsie".into()));
+    assert_eq!(value.into_message(), Some("oopsie".into()));
 }
 
 #[test]

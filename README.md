@@ -100,7 +100,7 @@ async fn main() {
     job.wait().await.unwrap_err();
 
     // The status message provides more details about the error.
-    assert_eq!(job.status().message(), "Error: The meaning of life could not be found");
+    assert_eq!(job.status().message(), "The meaning of life could not be found");
     assert_eq!(job.succeeded(), false);
 }
 
