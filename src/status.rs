@@ -102,8 +102,8 @@ impl Monitor {
     /// ownership of the message, then this method avoids an allocation compared
     /// to using [`write!`]. However, if your message is a `&str` or needs to be
     /// [`format`]ted, then you should use [`write!`].
-    pub fn report(&self, status: impl Into<JobStatus>) {
-        self.0.set_status(status.into());
+    pub fn report(&self, status: impl Into<Cow<'static, str>>) {
+        self.0.set_status(status.into().into());
     }
 
     /// Implementation to allow use with [`write!`].
