@@ -28,7 +28,7 @@ use std::process::ExitStatus;
 /// [`Job::succeeded`]: crate::Job::succeeded
 /// [`Job::status`]: crate::Job::status
 /// [`Girlboss::start`]: crate::Girlboss::start
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct JobReturnValue {
     pub(crate) message: Option<Cow<'static, str>>,
     pub(crate) is_success: bool,
