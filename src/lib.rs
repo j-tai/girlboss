@@ -4,12 +4,12 @@
 mod error;
 mod job;
 mod manager;
+mod return_value;
 mod status;
 mod tests;
-mod traits;
 
 pub use error::{Error, Result};
 pub use job::Job;
 pub use manager::Girlboss;
+pub use return_value::JobReturnValue;
 pub use status::{JobStatus, Monitor};
-pub use traits::JobOutput;

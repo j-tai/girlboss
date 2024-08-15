@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::status::AtomicJobStatus;
-use crate::{Error, JobOutput, JobStatus, Monitor, Result};
+use crate::{Error, JobReturnValue, JobStatus, Monitor, Result};
 
 /// A job, either running or finished.
 ///
@@ -36,7 +36,8 @@ impl Job {
     ///
     /// The argument is the job function, which is an `async` function that
     /// takes a [`Monitor`] (for progress reporting) and returns any type that
-    /// implements [`JobOutput`] (for error reporting). See [`JobOutput`] for
+    /// implements <code>[Into]&lt;[JobReturnValue]&gt;</code> (for error
+    /// reporting). See the [`JobReturnValue` documentation](JobReturnValue) for
     /// the complete list of types that the function may return.
     ///
     /// # Examples
@@ -60,7 +61,7 @@ impl Job {
     where
         F: FnOnce(Monitor) -> Fut,
         Fut: Future + Send + 'static,
-        <Fut as Future>::Output: JobOutput,
+        <Fut as Future>::Output: Into<JobReturnValue>,
     {
         let job = Job(Arc::new(JobInner {
             handle: Mutex::new(None),
@@ -79,28 +80,23 @@ impl Job {
             let result = AssertUnwindSafe(fut).catch_unwind().await;
 
             // Did it panic?
-            let is_success = match result {
-                Ok(output) => {
-                    let success = output.is_success();
-                    if let Some(message) = output.into_message() {
-                        job2.set_status(message.into());
-                    }
-                    success
-                }
-                Err(_error) => {
-                    // There's not much I can do to make a Box<dyn Any> human
-                    // readable...
-                    job2.set_status("The job panicked".into());
-                    false
-                    // Hopefully dropping the error object doesn't panic,
-                    // otherwise God help us
-                }
+            let mut return_value = match result {
+                Ok(output) => output.into(),
+                // There's not much I can do to make a Box<dyn Any> human
+                // readable, so we just say that the job panicked. Hopefully
+                // dropping `_error` doesn't panic, otherwise God help us
+                Err(_error) => JobReturnValue::panicked(),
             };
+
+            // Write the final message
+            if let Some(final_message) = return_value.message.take() {
+                job2.set_status(final_message.into());
+            }
 
             // Record the job completion
             let finished_info = JobFinishedInfo {
                 finished_at: Instant::now(),
-                is_success,
+                is_success: return_value.is_success,
             };
             job2.0.finished.set(finished_info).unwrap();
         });
@@ -141,7 +137,7 @@ impl Job {
     /// Returns true if this job finished successfully.
     ///
     /// Whether the job is considered successful or not is determined by the
-    /// job's return value. See [`JobOutput`] for the allowed types of the
+    /// job's return value. See [`JobReturnValue`] for the allowed types of the
     /// return value and which ones correspond to success or failure.
     ///
     /// If this job is still in progress, then this returns `false`.
