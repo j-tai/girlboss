@@ -204,3 +204,9 @@ impl fmt::Debug for Job {
         f.debug_tuple("Job").field(&Arc::as_ptr(&self.0)).finish()
     }
 }
+
+impl fmt::Pointer for Job {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Pointer::fmt(&self.0, f)
+    }
+}

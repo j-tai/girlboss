@@ -13,6 +13,13 @@ async fn debug_impl_makes_sense() {
 }
 
 #[tokio::test]
+async fn pointer_impl_makes_sense() {
+    let job = Job::start(jobs::instant);
+    let repr = format!("{job:p}");
+    assert!(repr.starts_with("0x"));
+}
+
+#[tokio::test]
 async fn equals_self() {
     let job = Job::start(jobs::slow);
     assert_eq!(job, job);

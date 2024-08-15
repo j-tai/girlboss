@@ -28,3 +28,12 @@ fn age_makes_sense() {
     let status = JobStatus::from("test");
     assert!(status.age() <= Duration::from_millis(10));
 }
+
+#[test]
+fn debug_impl_makes_sense() {
+    let status = JobStatus::from("test");
+    let s = format!("{status:?}");
+    assert!(s.starts_with("JobStatus"));
+    assert!(!s.contains("JobStatusInner"));
+    assert!(s.contains(r#"message: "test""#));
+}

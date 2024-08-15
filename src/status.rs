@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::fmt::Arguments;
+use std::fmt;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -42,6 +42,15 @@ impl<T: Into<Cow<'static, str>>> From<T> for JobStatus {
     }
 }
 
+impl fmt::Debug for JobStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("JobStatus")
+            .field("message", &&self.0.message[..])
+            .field("timestamp", &self.0.timestamp)
+            .finish()
+    }
+}
+
 pub(crate) struct AtomicJobStatus(ArcSwap<JobStatusInner>);
 
 impl AtomicJobStatus {
@@ -79,11 +88,11 @@ impl AtomicJobStatus {
 /// }
 ///
 /// let job = Job::start(long_running_task);
-/// job.wait().await;
+/// job.wait().await.unwrap();
 /// assert_eq!(job.status().message(), "The meaning of life is 42");
 /// # }
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Monitor(pub(crate) Job);
 
 impl Monitor {
@@ -98,7 +107,7 @@ impl Monitor {
     }
 
     /// Implementation to allow use with [`write!`].
-    pub fn write_fmt(&self, args: Arguments<'_>) {
+    pub fn write_fmt(&self, args: fmt::Arguments<'_>) {
         match args.as_str() {
             Some(s) => self.report(s),
             None => self.report(args.to_string()),
