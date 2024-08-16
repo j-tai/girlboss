@@ -18,4 +18,5 @@ publish version:
     git commit -m 'Bump version to {{version}}'
     cargo publish
     git tag 'v{{version}}' -m 'v{{version}}'
+    git push
     git push --tags
