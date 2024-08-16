@@ -134,19 +134,37 @@ impl Job {
         }
     }
 
-    /// Returns true if this job finished successfully.
+    /// Returns whether this job finished successfully, or `None` if it is still
+    /// in progress.
     ///
     /// Whether the job is considered successful or not is determined by the
     /// job's return value. See [`JobReturnValue`] for the allowed types of the
     /// return value and which ones correspond to success or failure.
     ///
-    /// If this job is still in progress, then this returns `false`.
+    /// This method is guaranteed to return `Some(_)` if and only if
+    /// [`self.is_finished()`](Self::is_finished) returns `true` (barring the
+    /// fact that the job could have changed from "in progress" to "finished" in
+    /// between two method calls).
+    pub fn outcome(&self) -> Option<bool> {
+        self.0.finished.get().map(|info| info.is_success)
+    }
+
+    /// Returns whether this job is finished.
+    ///
+    /// Equivalent to `self.outcome().is_some()`.
+    pub fn is_finished(&self) -> bool {
+        self.outcome().is_some()
+    }
+
+    /// Returns `true` if this job finished successfully.
+    ///
+    /// If this job is still in progress, then this returns `false`. See
+    /// [`outcome`](Self::outcome) for more information about "successful" and
+    /// "failed" jobs.
+    ///
+    /// Equivalent to `self.outcome().unwrap_or(false)`.
     pub fn succeeded(&self) -> bool {
-        self.0
-            .finished
-            .get()
-            .map(|info| info.is_success)
-            .unwrap_or(false)
+        self.outcome().unwrap_or(false)
     }
 
     /// Returns the [`Instant`] that this job was started.
@@ -161,13 +179,13 @@ impl Job {
     /// is never [`wait`](Job::wait)ed on. That is, this method returns the time
     /// that the job finished, not when the job was found to be finished by
     /// `wait`.
+    ///
+    /// This method is guaranteed to return `Some(_)` if and only if
+    /// [`self.outcome()`](Self::outcome) returns `Some(_)` (barring the fact
+    /// that the job could have changed from "in progress" to "finished" in
+    /// between two method calls).
     pub fn finished_at(&self) -> Option<Instant> {
         self.0.finished.get().map(|info| info.finished_at)
-    }
-
-    /// Returns whether this job is finished.
-    pub fn is_finished(&self) -> bool {
-        self.0.finished.get().is_some()
     }
 
     /// Returns the amount of wall-clock time this job has spent.

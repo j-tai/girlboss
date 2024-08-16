@@ -68,16 +68,16 @@ async fn sets_custom_status_by_return_value() {
 }
 
 #[tokio::test]
-async fn succeeded_is_false_when_in_progress() {
+async fn outcome_is_none_when_in_progress() {
     let job = Job::start(jobs::slow);
-    assert_eq!(job.succeeded(), false);
+    assert_eq!(job.outcome(), None);
 }
 
 #[tokio::test]
-async fn succeeded_is_false_when_failed() {
+async fn outcome_is_false_when_failed() {
     let job = Job::start(jobs::fails);
     assert_eq!(job.wait().await, Err(Error::JobFailed));
-    assert_eq!(job.succeeded(), false);
+    assert_eq!(job.outcome(), Some(false));
     assert_eq!(job.status().message(), "oopsie");
 }
 
@@ -85,15 +85,15 @@ async fn succeeded_is_false_when_failed() {
 async fn panic_is_caught() {
     let job = Job::start(jobs::panics);
     assert_eq!(job.wait().await, Err(Error::JobFailed));
-    assert_eq!(job.succeeded(), false);
+    assert_eq!(job.outcome(), Some(false));
     assert_eq!(job.status().message(), "The job panicked");
 }
 
 #[tokio::test]
-async fn succeeded_is_true_when_succeeded() {
+async fn outcome_is_true_when_succeeded() {
     let job = Job::start(jobs::instant);
     job.wait().await.unwrap();
-    assert_eq!(job.succeeded(), true);
+    assert_eq!(job.outcome(), Some(true));
 }
 
 #[tokio::test]
