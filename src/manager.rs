@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 use tokio::sync::RwLock;
 
-use crate::{Error, Job, JobReturnValue, Monitor, Result};
+use crate::{Error, Job, JobReturnStatus, Monitor, Result};
 
 /// A job manager, which stores a mapping of job IDs to [`Job`]s.
 ///
@@ -55,7 +55,7 @@ impl<K: Ord> Girlboss<K> {
     where
         F: FnOnce(Monitor) -> Fut,
         Fut: Future + Send + 'static,
-        <Fut as Future>::Output: Into<JobReturnValue>,
+        <Fut as Future>::Output: Into<JobReturnStatus>,
     {
         let mut jobs = self.jobs.write().await;
         match jobs.entry(id.into()) {

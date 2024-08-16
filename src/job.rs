@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
 use crate::status::AtomicJobStatus;
-use crate::{Error, JobReturnValue, JobStatus, Monitor, Result};
+use crate::{Error, JobReturnStatus, JobStatus, Monitor, Result};
 
 /// A job, either running or finished.
 ///
@@ -36,9 +36,9 @@ impl Job {
     ///
     /// The argument is the job function, which is an `async` function that
     /// takes a [`Monitor`] (for progress reporting) and returns any type that
-    /// implements <code>[Into]&lt;[JobReturnValue]&gt;</code> (for error
-    /// reporting). See the [`JobReturnValue` documentation](JobReturnValue) for
-    /// the complete list of types that the function may return.
+    /// implements <code>[Into]&lt;[JobReturnStatus]&gt;</code> (for error
+    /// reporting). See the [`JobReturnStatus` documentation](JobReturnStatus)
+    /// for the complete list of types that the function may return.
     ///
     /// # Examples
     ///
@@ -61,7 +61,7 @@ impl Job {
     where
         F: FnOnce(Monitor) -> Fut,
         Fut: Future + Send + 'static,
-        <Fut as Future>::Output: Into<JobReturnValue>,
+        <Fut as Future>::Output: Into<JobReturnStatus>,
     {
         let job = Job(Arc::new(JobInner {
             handle: Mutex::new(None),
@@ -85,7 +85,7 @@ impl Job {
                 // There's not much I can do to make a Box<dyn Any> human
                 // readable, so we just say that the job panicked. Hopefully
                 // dropping `_error` doesn't panic, otherwise God help us
-                Err(_error) => JobReturnValue::panicked(),
+                Err(_error) => JobReturnStatus::panicked(),
             };
 
             // Write the final message
@@ -138,7 +138,7 @@ impl Job {
     /// in progress.
     ///
     /// Whether the job is considered successful or not is determined by the
-    /// job's return value. See [`JobReturnValue`] for the allowed types of the
+    /// job's return value. See [`JobReturnStatus`] for the allowed types of the
     /// return value and which ones correspond to success or failure.
     ///
     /// This method is guaranteed to return `Some(_)` if and only if
