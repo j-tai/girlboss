@@ -15,9 +15,9 @@ categories = ["asynchronous", "concurrency", "web-programming"]
 
 [dependencies]
 arc-swap = "1.7.1"
-futures = { version = "0.3.30", default-features = false, features = ["std"] }
-thiserror = "1.0.63"
-tokio = { version = "1.39.2", features = ["rt", "sync"] }
+futures = { version = "0.3.31", default-features = false, features = ["std"] }
+thiserror = "1.0.69"
+tokio = { version = "1.41.1", features = ["rt", "sync"] }
 
 [dev-dependencies]
-tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.41.1", features = ["macros", "rt", "rt-multi-thread", "sync", "time"] }
