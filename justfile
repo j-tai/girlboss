@@ -32,7 +32,7 @@ publish version:
     just check test
     git add Cargo.toml Cargo.lock
     git commit -m 'Bump version to {{version}}'
-    cargo publish
+    cargo publish --all-features
     git tag 'v{{version}}' -m 'v{{version}}'
     git push
     git push --tags

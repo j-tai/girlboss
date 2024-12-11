@@ -1,6 +1,6 @@
 [package]
 name = "girlboss"
-version = "0.3.0"
+version = "1.0.0-alpha.1"
 authors = ["Jasmine Tai <jtai@jtai.ca>"]
 edition = "2021"
 rust-version = "1.80.0"
