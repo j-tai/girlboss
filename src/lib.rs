@@ -12,7 +12,7 @@ pub use error::{Error, Result};
 pub use return_status::JobReturnStatus;
 pub use status::JobStatus;
 
-#[cfg(not(any(feature = "tokio", feature = "actix-rt")))]
+#[cfg(not(any(doc, feature = "tokio", feature = "actix-rt")))]
 compile_error!("you must specify at least one async runtime as a crate feature");
 
 macro_rules! make_runtime_module {
