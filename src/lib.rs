@@ -18,7 +18,6 @@ compile_error!("you must specify at least one async runtime as a crate feature")
 macro_rules! make_runtime_module {
     ($module:ident = $name:literal , $runtime:ty) => {
         #[doc = concat!("Shortcuts for ", $name, "-specific types.")]
-        #[cfg(feature = "tokio")]
         pub mod $module {
             #[doc = concat!($name, "-specific [`Girlboss`](crate::common::Girlboss) type.")]
             pub type Girlboss<K> = crate::common::Girlboss<$runtime, K>;

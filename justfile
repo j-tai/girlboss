@@ -4,9 +4,19 @@ help:
 
 # Checks the project with all combinations of features.
 check:
-    cargo check --features tokio
-    cargo check --features actix-rt
-    cargo check --features tokio,actix-rt
+    just foreach cargo check
+
+# Tests the project with all combinations of features.
+test:
+    just foreach cargo test --all-targets
+    cargo test --doc --features tokio
+    cargo test --doc --all-features
+
+[private]
+foreach *cmd:
+    {{cmd}} --features tokio
+    {{cmd}} --features actix-rt
+    {{cmd}} --features tokio,actix-rt
 
 # Analyze code coverage.
 coverage:
@@ -19,7 +29,7 @@ coverage:
 # Publish the crate.
 publish version:
     sed -i 's/^version = ".*/version = "{{version}}"/' Cargo.toml
-    cargo test
+    just check test
     git add Cargo.toml Cargo.lock
     git commit -m 'Bump version to {{version}}'
     cargo publish
