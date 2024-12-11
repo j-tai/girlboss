@@ -12,6 +12,10 @@ test:
     cargo test --doc --features tokio
     cargo test --doc --all-features
 
+# Builds the documentation.
+doc *args:
+    RUSTDOCFLAGS='--cfg docsrs' cargo +nightly doc --all-features {{args}}
+
 [private]
 foreach *cmd:
     {{cmd}} --features tokio

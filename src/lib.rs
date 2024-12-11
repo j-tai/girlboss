@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
@@ -18,6 +19,7 @@ compile_error!("you must specify at least one async runtime as a crate feature")
 macro_rules! make_runtime_module {
     ($module:ident = $name:literal , $runtime:ty) => {
         #[doc = concat!("Shortcuts for ", $name, "-specific types.")]
+        #[cfg(feature = $name)]
         pub mod $module {
             #[doc = concat!($name, "-specific [`Girlboss`](crate::common::Girlboss) type.")]
             pub type Girlboss<K> = crate::common::Girlboss<$runtime, K>;
@@ -31,8 +33,5 @@ macro_rules! make_runtime_module {
     };
 }
 
-#[cfg(feature = "tokio")]
-make_runtime_module!(tokio = "Tokio", crate::runtime::Tokio);
-
-#[cfg(feature = "actix-rt")]
+make_runtime_module!(tokio = "tokio", crate::runtime::Tokio);
 make_runtime_module!(actix_rt = "actix-rt", crate::runtime::ActixRt);

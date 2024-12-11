@@ -22,8 +22,15 @@ thiserror = "2.0.6"
 tokio = { version = "1.42.0", features = ["rt", "sync"], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "time"], optional = false }
+tokio = { version = "1.42.0", features = ["macros", "rt", "rt-multi-thread", "sync", "time"] }
 
 [features]
 actix-rt = ["dep:actix-rt"]
 tokio = ["dep:tokio"]
+
+[package.metadata.docs.rs]
+# https://stackoverflow.com/a/61417700
+# document all features
+all-features = true
+# defines the configuration attribute `docsrs`
+rustdoc-args = ["--cfg", "docsrs"]
