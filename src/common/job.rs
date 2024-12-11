@@ -1,25 +1,22 @@
 use std::fmt;
 use std::future::Future;
-use std::panic::AssertUnwindSafe;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
-use futures::FutureExt;
-use tokio::sync::Mutex;
-use tokio::task::JoinHandle;
-
+use crate::runtime::{JobHandle, Runtime, Spawnable};
 use crate::status::AtomicJobStatus;
-use crate::{Error, JobReturnStatus, JobStatus, Monitor, Result};
+use crate::{Error, JobReturnStatus, JobStatus, Result};
+
+use super::Monitor;
 
 /// A job, either running or finished.
 ///
 /// This struct only represents a handle for the job. Cloning a `Job` is cheap,
 /// and dropping a `Job` will not cause it to stop running.
-#[derive(Clone)]
-pub struct Job(Arc<JobInner>);
+pub struct Job<R: Runtime>(Arc<JobInner<R>>);
 
-struct JobInner {
-    handle: Mutex<Option<JoinHandle<()>>>,
+struct JobInner<R: Runtime> {
+    handle: R::JobHandle,
     status: AtomicJobStatus,
     started_at: Instant,
     finished: OnceLock<JobFinishedInfo>,
@@ -31,7 +28,7 @@ struct JobFinishedInfo {
     is_success: bool,
 }
 
-impl Job {
+impl<R: Runtime> Job<R> {
     /// Creates and starts a new job.
     ///
     /// The argument is the job function, which is an `async` function that
@@ -47,7 +44,7 @@ impl Job {
     /// ```
     /// # #[tokio::main]
     /// # async fn main() {
-    /// use girlboss::Job;
+    /// use girlboss::tokio::Job;
     ///
     /// let job = Job::start(|mon| async move {
     ///     // ... long running task goes here ...
@@ -57,55 +54,21 @@ impl Job {
     /// assert_eq!(job.status().message(), "I'm done!");
     /// # }
     /// ```
-    pub fn start<F, Fut>(func: F) -> Job
+    pub fn start<F, Fut>(func: F) -> Self
     where
-        F: FnOnce(Monitor) -> Fut,
-        Fut: Future + Send + 'static,
+        F: FnOnce(Monitor<R>) -> Fut,
+        Fut: Spawnable<R>,
         <Fut as Future>::Output: Into<JobReturnStatus>,
     {
         let job = Job(Arc::new(JobInner {
-            handle: Mutex::new(None),
+            handle: R::JobHandle::default(),
             status: AtomicJobStatus::new("Starting job".into()),
             started_at: Instant::now(),
             finished: OnceLock::new(),
         }));
 
         let fut = func(Monitor(job.clone()));
-        let job2 = job.clone();
-        let handle = tokio::spawn(async move {
-            // If the job panics, we still want to clean up the job.
-            // AssertUnwindSafe should be fine here, since whatever the future
-            // does is the user's responsibility, and we don't share any state
-            // with `fut`.
-            let result = AssertUnwindSafe(fut).catch_unwind().await;
-
-            // Did it panic?
-            let mut return_value = match result {
-                Ok(output) => output.into(),
-                // There's not much I can do to make a Box<dyn Any> human
-                // readable, so we just say that the job panicked. Hopefully
-                // dropping `_error` doesn't panic, otherwise God help us
-                Err(_error) => JobReturnStatus::panicked(),
-            };
-
-            // Write the final message
-            if let Some(final_message) = return_value.message.take() {
-                job2.set_status(final_message.into());
-            }
-
-            // Record the job completion
-            let finished_info = JobFinishedInfo {
-                finished_at: Instant::now(),
-                is_success: return_value.is_success,
-            };
-            job2.0.finished.set(finished_info).unwrap();
-        });
-
-        // This `unwrap` doesn't panic because no one else has access to the
-        // handle mutex. The job function has access to a `Monitor`, but that
-        // cannot be used to gain access to the `Job` instance and touch the
-        // handler via `wait()`.
-        *job.0.handle.try_lock().unwrap() = Some(handle);
+        fut.spawn(&job.0.handle, job.clone());
         job
     }
 
@@ -122,11 +85,7 @@ impl Job {
     /// If the job is already finished, then this method does nothing other than
     /// return `Ok` or `Err` as described above.
     pub async fn wait(&self) -> Result<()> {
-        if let Some(handle) = self.0.handle.lock().await.take() {
-            // If the task got cancelled for some reason, don't worry about it.
-            // Also, the task shouldn't panic because we `catch_unwind`.
-            let _ = handle.await;
-        }
+        self.0.handle.wait().await;
         if self.0.finished.get().unwrap().is_success {
             Ok(())
         } else {
@@ -199,27 +158,56 @@ impl Job {
 }
 
 // Internal methods
-impl Job {
+impl<R: Runtime> Job<R> {
     pub(crate) fn set_status(&self, status: JobStatus) {
         self.0.status.store(status);
     }
+
+    pub(crate) fn set_finished<T, E>(&self, result: Result<T, E>)
+    where
+        T: Into<JobReturnStatus>,
+    {
+        // Did it panic?
+        let mut return_status = match result {
+            Ok(output) => output.into(),
+            Err(_) => JobReturnStatus::panicked(),
+        };
+
+        // Write the final message
+        if let Some(final_message) = return_status.message.take() {
+            self.set_status(final_message.into());
+        }
+
+        // Record the job completion
+        let finished_info = JobFinishedInfo {
+            finished_at: Instant::now(),
+            is_success: return_status.is_success,
+        };
+        self.0.finished.set(finished_info).unwrap();
+    }
 }
 
-impl PartialEq for Job {
+impl<R: Runtime> Clone for Job<R> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
+impl<R: Runtime> PartialEq for Job<R> {
     fn eq(&self, other: &Self) -> bool {
         Arc::as_ptr(&self.0) == Arc::as_ptr(&other.0)
     }
 }
 
-impl Eq for Job {}
+impl<R: Runtime> Eq for Job<R> {}
 
-impl fmt::Debug for Job {
+impl<R: Runtime> fmt::Debug for Job<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Job").field(&Arc::as_ptr(&self.0)).finish()
     }
 }
 
-impl fmt::Pointer for Job {
+impl<R: Runtime> fmt::Pointer for Job<R> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Pointer::fmt(&self.0, f)
     }

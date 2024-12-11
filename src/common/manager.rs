@@ -4,9 +4,10 @@ use std::collections::BTreeMap;
 use std::future::Future;
 use std::time::{Duration, Instant};
 
-use tokio::sync::RwLock;
+use crate::runtime::{Runtime, Spawnable};
+use crate::{Error, JobReturnStatus, Result};
 
-use crate::{Error, Job, JobReturnStatus, Monitor, Result};
+use super::{Job, Monitor};
 
 /// A job manager, which stores a mapping of job IDs to [`Job`]s.
 ///
@@ -16,15 +17,15 @@ use crate::{Error, Job, JobReturnStatus, Monitor, Result};
 ///
 /// The job ID type, `K`, must implement [`Ord`] because the implementation
 /// currently uses a [`BTreeMap`].
-pub struct Girlboss<K: Ord> {
-    jobs: RwLock<BTreeMap<K, Job>>,
+pub struct Girlboss<R: Runtime, K: Ord> {
+    jobs: BTreeMap<K, Job<R>>,
 }
 
-impl<K: Ord> Girlboss<K> {
+impl<R: Runtime, K: Ord> Girlboss<R, K> {
     /// Creates a new empty job manager.
     pub fn new() -> Self {
         Girlboss {
-            jobs: RwLock::new(BTreeMap::new()),
+            jobs: BTreeMap::new(),
         }
     }
 
@@ -32,12 +33,12 @@ impl<K: Ord> Girlboss<K> {
     ///
     /// This method will continue to return jobs after they are finished. See
     /// the [struct documentation](Girlboss) for more information.
-    pub async fn get<Q>(&self, id: &Q) -> Option<Job>
+    pub fn get<Q>(&self, id: &Q) -> Option<Job<R>>
     where
         Q: Ord + ?Sized,
         K: Borrow<Q>,
     {
-        self.jobs.read().await.get(id).cloned()
+        self.jobs.get(id).cloned()
     }
 
     /// Starts and returns a new job with the provided ID.
@@ -51,14 +52,13 @@ impl<K: Ord> Girlboss<K> {
     ///   <code>Err([Error::JobExists])</code>.
     ///
     /// See [`Job::start`] for information about the job function.
-    pub async fn start<F, Fut>(&self, id: impl Into<K>, func: F) -> Result<Job>
+    pub fn start<F, Fut>(&mut self, id: impl Into<K>, func: F) -> Result<Job<R>>
     where
-        F: FnOnce(Monitor) -> Fut,
-        Fut: Future + Send + 'static,
+        F: FnOnce(Monitor<R>) -> Fut,
+        Fut: Spawnable<R>,
         <Fut as Future>::Output: Into<JobReturnStatus>,
     {
-        let mut jobs = self.jobs.write().await;
-        match jobs.entry(id.into()) {
+        match self.jobs.entry(id.into()) {
             Entry::Vacant(vacant) => {
                 let job = Job::start(func);
                 vacant.insert(job.clone());
@@ -81,15 +81,14 @@ impl<K: Ord> Girlboss<K> {
     /// If `max_age` is [`Duration::ZERO`], then all finished jobs are removed.
     ///
     /// Jobs that are still in progress are never touched.
-    pub async fn cleanup(&self, max_age: Duration) {
+    pub fn cleanup(&mut self, max_age: Duration) {
         let Some(max_time) = Instant::now().checked_sub(max_age) else {
             // The app hasn't been running for `max_age` time yet, so there's
             // nothing to delete.
             return;
         };
 
-        let mut jobs = self.jobs.write().await;
-        jobs.retain(move |_, job| match job.finished_at() {
+        self.jobs.retain(move |_, job| match job.finished_at() {
             // If the job is finished and it's old enough, don't retain it.
             Some(finished_at) if finished_at < max_time => false,
             _ => true,
@@ -97,7 +96,7 @@ impl<K: Ord> Girlboss<K> {
     }
 }
 
-impl<K: Ord> Default for Girlboss<K> {
+impl<R: Runtime, K: Ord> Default for Girlboss<R, K> {
     fn default() -> Self {
         Girlboss::new()
     }

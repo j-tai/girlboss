@@ -3,7 +3,7 @@ use std::convert::Infallible;
 use std::fmt::Display;
 use std::process::ExitStatus;
 
-/// The generalized return value of a [`Job`](crate::Job) function.
+/// The generalized return value of a [`Job`] function.
 ///
 /// A job function (that is, the function passed to [`Job::start`] or
 /// [`Girlboss::start`]) can return any type that implements
@@ -23,11 +23,11 @@ use std::process::ExitStatus;
 /// | <code>[Option]&lt;T: Into&lt;JobReturnStatus&gt;&gt;</code> | [`Option::is_some`] | the value (if it's present and produces a message) |
 /// | [`Infallible`] | N/A | N/A |
 ///
-/// [`Job`]: crate::Job
-/// [`Job::start`]: crate::Job::start
-/// [`Job::succeeded`]: crate::Job::succeeded
-/// [`Job::status`]: crate::Job::status
-/// [`Girlboss::start`]: crate::Girlboss::start
+/// [`Job`]: crate::common::Job
+/// [`Job::start`]: crate::common::Job::start
+/// [`Job::succeeded`]: crate::common::Job::succeeded
+/// [`Job::status`]: crate::common::Job::status
+/// [`Girlboss::start`]: crate::common::Girlboss::start
 #[derive(Debug, PartialEq, Eq)]
 pub struct JobReturnStatus {
     pub(crate) message: Option<Cow<'static, str>>,

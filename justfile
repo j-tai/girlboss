@@ -2,10 +2,16 @@
 help:
     @just --list
 
+# Checks the project with all combinations of features.
+check:
+    cargo check --features tokio
+    cargo check --features actix-rt
+    cargo check --features tokio,actix-rt
+
 # Analyze code coverage.
 coverage:
     rm -rf target/package
-    cargo tarpaulin --out=html --output-dir=target --skip-clean --target-dir=target/_tarpaulin
+    cargo tarpaulin --all-features --out=html --output-dir=target --skip-clean --target-dir=target/_tarpaulin
     #
     # Code coverage information has been written to target/tarpaulin-report.html
     #

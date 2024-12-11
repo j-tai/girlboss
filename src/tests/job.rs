@@ -1,9 +1,12 @@
+#![cfg(feature = "tokio")]
+
 use std::time::{Duration, Instant};
 
 use tokio::time::sleep;
 
 use crate::tests::jobs;
-use crate::{Error, Job};
+use crate::tokio::Job;
+use crate::Error;
 
 #[tokio::test]
 async fn debug_impl_makes_sense() {

@@ -6,13 +6,26 @@ Girlboss allows you to start background tasks and monitor their progress. You ca
 
 For example, this can be useful in web servers where a user starts a job and periodically checks its status.
 
+## Runtime agnostic
+
+Girlboss is compatible with both `tokio` and `actix-rt` runtimes. You must select the runtime you want by enabling the corresponding feature in your `Cargo.toml` file, as shown below.
+
+```toml
+[dependencies]
+girlboss = { version = "...", features = ["tokio"] }
+```
+
+Then, import the `Girlboss`, `Job`, and `Monitor` types from `girlboss::<runtime>` (for example, `girlboss::tokio` or `girlboss::actix_rt`).
+
+The examples below all use `tokio` for consistency. However, all examples should work on all runtimes.
+
 ## Jobs and status reporting
 
 You can start background jobs that periodically report their progress, and then you can check on the progress from another task/thread.
 
 ```rust
 use std::time::Duration;
-use girlboss::{Job, Monitor};
+use girlboss::tokio::{Job, Monitor};
 use tokio::time::sleep;
 
 #[tokio::main]
@@ -51,23 +64,23 @@ You can choose any type that implements `Ord` to be your job ID type. Here, we c
 
 ```rust
 use std::time::Duration;
-use girlboss::{Girlboss, Monitor};
+use girlboss::tokio::{Girlboss, Monitor};
 use tokio::time::sleep;
 
 #[tokio::main]
 async fn main() {
     // Create a manager with strings as job IDs.
-    let manager: Girlboss<String> = Girlboss::new();
+    let mut manager: Girlboss<String> = Girlboss::new();
 
     // Start a job.
-    let job = manager.start("myJobId", long_running_task).await.unwrap();
+    let job = manager.start("myJobId", long_running_task).unwrap();
 
     // Wait for the job to complete.
-    let job_2 = manager.get("myJobId").await.expect("job not found");
+    let job_2 = manager.get("myJobId").expect("job not found");
     job_2.wait().await.expect("job failed");
 
     // Check the job status after it's finished.
-    let job_3 = manager.get("myJobId").await.expect("job not found");
+    let job_3 = manager.get("myJobId").expect("job not found");
     assert_eq!(job_3.status().message(), "The meaning of life is 42");
 
     // When we look up the job again, we get the same job back.
@@ -90,7 +103,7 @@ async fn long_running_task(mon: Monitor) {
 Jobs can optionally return an error, which is then reported through the status.
 
 ```rust
-use girlboss::{Job, Monitor};
+use girlboss::tokio::{Job, Monitor};
 
 #[tokio::main]
 async fn main() {
