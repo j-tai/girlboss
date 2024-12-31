@@ -54,14 +54,10 @@ impl<R: Runtime> Job<R> {
         Fut: Spawnable<R>,
         <Fut as Future>::Output: Into<JobReturnStatus>,
     {
-        let job = Job {
-            handle: Arc::new(R::JobHandle::default()),
-            monitor: Monitor::starting(),
-        };
-
-        let fut = func(job.monitor.clone());
-        fut.spawn(&job.handle, job.monitor.clone());
-        job
+        let monitor = Monitor::starting();
+        let fut = func(monitor.clone());
+        let handle = Arc::new(fut.spawn(monitor.clone()));
+        Job { handle, monitor }
     }
 
     /// Waits for this job to finish.

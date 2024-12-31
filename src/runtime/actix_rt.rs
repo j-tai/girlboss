@@ -11,7 +11,6 @@ use crate::{JobReturnStatus, Monitor};
 /// Represents the actix-rt async runtime.
 pub enum ActixRt {}
 
-#[derive(Default)]
 pub struct ActixRtHandle(RefCell<Option<JoinHandle<()>>>);
 
 #[sealed]
@@ -34,10 +33,11 @@ where
     F: Future + 'static,
     F::Output: Into<JobReturnStatus>,
 {
-    fn spawn(self, handle: &ActixRtHandle, monitor: Monitor) {
-        *handle.0.borrow_mut() = Some(actix_rt::spawn(async move {
+    fn spawn(self, monitor: Monitor) -> ActixRtHandle {
+        let handle = actix_rt::spawn(async move {
             let result = AssertUnwindSafe(self).catch_unwind().await;
             monitor.set_finished(result);
-        }));
+        });
+        ActixRtHandle(RefCell::new(Some(handle)))
     }
 }

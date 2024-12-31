@@ -11,7 +11,6 @@ use crate::{JobReturnStatus, Monitor};
 /// Represents the Tokio async runtime.
 pub enum Tokio {}
 
-#[derive(Default)]
 pub struct TokioHandle(Mutex<Option<JoinHandle<()>>>);
 
 #[sealed]
@@ -36,10 +35,11 @@ where
     F: Future + Send + 'static,
     F::Output: Into<JobReturnStatus>,
 {
-    fn spawn(self, handle: &TokioHandle, monitor: Monitor) {
-        *handle.0.try_lock().unwrap() = Some(tokio::task::spawn(async move {
+    fn spawn(self, monitor: Monitor) -> TokioHandle {
+        let handle = tokio::task::spawn(async move {
             let result = AssertUnwindSafe(self).catch_unwind().await;
             monitor.set_finished(result);
-        }));
+        });
+        TokioHandle(Mutex::new(Some(handle)))
     }
 }

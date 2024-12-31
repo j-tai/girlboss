@@ -25,7 +25,7 @@ pub trait Runtime: Sized {
 /// A job handle in the runtime `R`, roughly analogous to a mutex-wrapped
 /// `JoinHandle`.
 #[sealed]
-pub trait JobHandle<R: Runtime>: Default + 'static {
+pub trait JobHandle<R: Runtime>: 'static {
     /// Waits for the job to finish.
     fn wait(&self) -> impl std::future::Future<Output = ()>;
 }
@@ -33,6 +33,6 @@ pub trait JobHandle<R: Runtime>: Default + 'static {
 /// A future that can be spawned using the runtime `R`.
 #[sealed]
 pub trait Spawnable<R: Runtime>: Future + 'static {
-    /// Spawns the future into the [`JobHandle`].
-    fn spawn(self, handle: &R::JobHandle, monitor: Monitor);
+    /// Spawns the future and returns a [`JobHandle`].
+    fn spawn(self, monitor: Monitor) -> R::JobHandle;
 }
