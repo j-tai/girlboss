@@ -118,9 +118,9 @@ impl Monitor {
     /// still in progress.
     ///
     /// Note that the time finished will be recorded correctly even if the job
-    /// is never [`wait`](Job::wait)ed on. That is, this method returns the time
-    /// that the job finished, not when the job was found to be finished by
-    /// `wait`.
+    /// is never [`wait`](crate::common::Job::wait)ed on. That is, this method
+    /// returns the time that the job finished, not when the job was found to be
+    /// finished by `wait`.
     ///
     /// This method is guaranteed to return `Some(_)` if and only if
     /// [`self.outcome()`](Self::outcome) returns `Some(_)` (barring the fact
