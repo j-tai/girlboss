@@ -177,6 +177,12 @@ impl Monitor {
     }
 }
 
+impl AsRef<Monitor> for Monitor {
+    fn as_ref(&self) -> &Monitor {
+        self
+    }
+}
+
 impl PartialEq for Monitor {
     fn eq(&self, other: &Self) -> bool {
         Arc::as_ptr(&self.0) == Arc::as_ptr(&other.0)

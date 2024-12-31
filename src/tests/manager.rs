@@ -2,9 +2,10 @@
 
 use std::time::Duration;
 
+use crate::runtime::Tokio;
 use crate::tests::jobs;
 use crate::tokio::Girlboss;
-use crate::Error;
+use crate::{Error, Monitor};
 
 #[tokio::test]
 async fn can_start_and_get_jobs() {
@@ -63,4 +64,21 @@ async fn cleanup_keeps_recently_finished_jobs() {
     manager.cleanup(Duration::MAX);
     let job1_2 = manager.get(&1);
     assert_eq!(job1_2, Some(job1));
+}
+
+#[tokio::test]
+async fn store_monitors() {
+    let mut manager = crate::Girlboss::<i32, Monitor>::new();
+    let job1 = manager.start::<Tokio, _, _>(1, jobs::instant).unwrap();
+    let mon1 = manager.get(&1).unwrap();
+    assert_eq!(*job1.monitor(), mon1);
+
+    let job2 = manager.start::<Tokio, _, _>(2, jobs::slow).unwrap();
+    let mon2 = manager.get(&2).unwrap();
+    let mon2_1 = manager.get(&2).unwrap();
+    assert_eq!(*job2.monitor(), mon2);
+    assert_eq!(*job2.monitor(), mon2_1);
+    assert_eq!(mon2, mon2_1);
+
+    assert_ne!(mon1, mon2);
 }

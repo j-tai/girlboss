@@ -111,6 +111,12 @@ impl<R: Runtime> Job<R> {
     }
 }
 
+impl<R: Runtime> AsRef<Monitor> for Job<R> {
+    fn as_ref(&self) -> &Monitor {
+        &self.monitor
+    }
+}
+
 impl<R: Runtime> Clone for Job<R> {
     fn clone(&self) -> Self {
         Self {

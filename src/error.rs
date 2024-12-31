@@ -4,7 +4,7 @@ use thiserror::Error as ThisError;
 #[derive(Debug, ThisError, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
-    /// Returned by [`Girlboss::start`](crate::common::Girlboss::start) when the
+    /// Returned by [`Girlboss::start`](crate::Girlboss::start) when the
     /// specified job ID already exists and that job is not finished.
     #[error("A job with that ID already exists")]
     JobExists,
