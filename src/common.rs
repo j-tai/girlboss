@@ -12,8 +12,6 @@
 
 mod job;
 mod manager;
-mod monitor;
 
 pub use job::Job;
 pub use manager::Girlboss;
-pub use monitor::Monitor;

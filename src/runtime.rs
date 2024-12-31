@@ -13,7 +13,7 @@ use sealed::sealed;
 #[cfg(feature = "tokio")]
 pub use tokio::Tokio;
 
-use crate::common::Job;
+use crate::Monitor;
 
 /// An async runtime.
 #[sealed]
@@ -34,5 +34,5 @@ pub trait JobHandle<R: Runtime>: Default + 'static {
 #[sealed]
 pub trait Spawnable<R: Runtime>: Future + 'static {
     /// Spawns the future into the [`JobHandle`].
-    fn spawn(self, handle: &R::JobHandle, job: Job<R>);
+    fn spawn(self, handle: &R::JobHandle, monitor: Monitor);
 }

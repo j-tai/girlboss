@@ -6,8 +6,7 @@ use sealed::sealed;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 
-use crate::common::Job;
-use crate::JobReturnStatus;
+use crate::{JobReturnStatus, Monitor};
 
 /// Represents the Tokio async runtime.
 pub enum Tokio {}
@@ -37,10 +36,10 @@ where
     F: Future + Send + 'static,
     F::Output: Into<JobReturnStatus>,
 {
-    fn spawn(self, handle: &TokioHandle, job: Job<Tokio>) {
+    fn spawn(self, handle: &TokioHandle, monitor: Monitor) {
         *handle.0.try_lock().unwrap() = Some(tokio::task::spawn(async move {
             let result = AssertUnwindSafe(self).catch_unwind().await;
-            job.set_finished(result);
+            monitor.set_finished(result);
         }));
     }
 }

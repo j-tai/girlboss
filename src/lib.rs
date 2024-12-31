@@ -4,12 +4,14 @@
 
 pub mod common;
 mod error;
+mod monitor;
 mod return_status;
 pub mod runtime;
 mod status;
 mod tests;
 
 pub use error::{Error, Result};
+pub use monitor::Monitor;
 pub use return_status::JobReturnStatus;
 pub use status::JobStatus;
 
@@ -26,9 +28,6 @@ macro_rules! make_runtime_module {
 
             #[doc = concat!($name, "-specific [`Job`](crate::common::Job) type.")]
             pub type Job = crate::common::Job<$runtime>;
-
-            #[doc = concat!($name, "-specific [`Monitor`](crate::common::Monitor) type.")]
-            pub type Monitor = crate::common::Monitor<$runtime>;
         }
     };
 }

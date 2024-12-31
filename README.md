@@ -15,7 +15,7 @@ Girlboss is compatible with both `tokio` and `actix-rt` runtimes. You must selec
 girlboss = { version = "...", features = ["tokio"] }
 ```
 
-Then, import the `Girlboss`, `Job`, and `Monitor` types from `girlboss::<runtime>` (for example, `girlboss::tokio` or `girlboss::actix_rt`).
+Then, import the `Girlboss` and `Job` types from `girlboss::<runtime>` (for example, `girlboss::tokio` or `girlboss::actix_rt`).
 
 The examples below all use `tokio` for consistency. However, all examples should work on all runtimes.
 
@@ -25,7 +25,8 @@ You can start background jobs that periodically report their progress, and then 
 
 ```rust
 use std::time::Duration;
-use girlboss::tokio::{Job, Monitor};
+use girlboss::Monitor;
+use girlboss::tokio::Job;
 use tokio::time::sleep;
 
 #[tokio::main]
@@ -42,7 +43,7 @@ async fn main() {
     assert_eq!(job.status().message(), "The meaning of life is 42");
 
     // See how long the job took.
-    assert!(job.elapsed() >= Duration::from_millis(200));
+    assert!(job.monitor().elapsed() >= Duration::from_millis(200));
 }
 
 /// A long running task that we want to run in the background.
@@ -64,7 +65,8 @@ You can choose any type that implements `Ord` to be your job ID type. Here, we c
 
 ```rust
 use std::time::Duration;
-use girlboss::tokio::{Girlboss, Monitor};
+use girlboss::Monitor;
+use girlboss::tokio::Girlboss;
 use tokio::time::sleep;
 
 #[tokio::main]
@@ -103,7 +105,8 @@ async fn long_running_task(mon: Monitor) {
 Jobs can optionally return an error, which is then reported through the status.
 
 ```rust
-use girlboss::tokio::{Job, Monitor};
+use girlboss::Monitor;
+use girlboss::tokio::Job;
 
 #[tokio::main]
 async fn main() {

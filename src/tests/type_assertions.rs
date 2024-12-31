@@ -1,14 +1,17 @@
+#[tokio::test]
+async fn general() {
+    is_send_sync::<crate::Monitor>();
+}
+
 #[cfg(feature = "tokio")]
 #[tokio::test]
 async fn tokio() {
     use crate::tokio::Job;
 
-    fn is_send_sync<T: Send + Sync>() {}
     fn value_is_send_sync<T: Send + Sync>(_: T) {}
 
     is_send_sync::<crate::tokio::Girlboss<i32>>();
     is_send_sync::<crate::tokio::Job>();
-    is_send_sync::<crate::tokio::Monitor>();
 
     let job = Job::start(|_| async {});
     value_is_send_sync(job.wait());
@@ -30,3 +33,5 @@ async fn actix_rt() {
         println!("{raw_ptr:?}");
     });
 }
+
+fn is_send_sync<T: Send + Sync>() {}

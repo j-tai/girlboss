@@ -5,9 +5,9 @@ use std::future::Future;
 use std::time::{Duration, Instant};
 
 use crate::runtime::{Runtime, Spawnable};
-use crate::{Error, JobReturnStatus, Result};
+use crate::{Error, JobReturnStatus, Monitor, Result};
 
-use super::{Job, Monitor};
+use super::Job;
 
 /// A job manager, which stores a mapping of job IDs to [`Job`]s.
 ///
@@ -54,7 +54,7 @@ impl<R: Runtime, K: Ord> Girlboss<R, K> {
     /// See [`Job::start`] for information about the job function.
     pub fn start<F, Fut>(&mut self, id: impl Into<K>, func: F) -> Result<Job<R>>
     where
-        F: FnOnce(Monitor<R>) -> Fut,
+        F: FnOnce(Monitor) -> Fut,
         Fut: Spawnable<R>,
         <Fut as Future>::Output: Into<JobReturnStatus>,
     {
@@ -65,7 +65,7 @@ impl<R: Runtime, K: Ord> Girlboss<R, K> {
                 Ok(job)
             }
             Entry::Occupied(mut occupied) => {
-                if occupied.get().is_finished() {
+                if occupied.get().monitor().is_finished() {
                     let job = Job::start(func);
                     occupied.insert(job.clone());
                     Ok(job)
@@ -88,11 +88,12 @@ impl<R: Runtime, K: Ord> Girlboss<R, K> {
             return;
         };
 
-        self.jobs.retain(move |_, job| match job.finished_at() {
-            // If the job is finished and it's old enough, don't retain it.
-            Some(finished_at) if finished_at < max_time => false,
-            _ => true,
-        });
+        self.jobs
+            .retain(move |_, job| match job.monitor().finished_at() {
+                // If the job is finished and it's old enough, don't retain it.
+                Some(finished_at) if finished_at < max_time => false,
+                _ => true,
+            });
     }
 }
 

@@ -12,7 +12,8 @@ use crate::Error;
 async fn debug_impl_makes_sense() {
     let job = Job::start(jobs::instant);
     let repr = format!("{job:?}");
-    assert!(repr.starts_with("Job(0x"));
+    assert!(repr.starts_with("Job("));
+    assert!(repr.contains("0x"));
 }
 
 #[tokio::test]
@@ -108,8 +109,8 @@ async fn started_time_makes_sense() {
     let before = Instant::now();
     let job = Job::start(jobs::slow);
     let after = Instant::now();
-    assert!(before <= job.started_at());
-    assert!(job.started_at() <= after);
+    assert!(before <= job.monitor().started_at());
+    assert!(job.monitor().started_at() <= after);
 }
 
 #[tokio::test]
@@ -119,7 +120,7 @@ async fn finished_time_makes_sense() {
     let before = Instant::now();
     job.wait().await.unwrap();
     let after = Instant::now();
-    let finished_at = job.finished_at().unwrap();
+    let finished_at = job.monitor().finished_at().unwrap();
     assert!(before <= finished_at);
     assert!(finished_at <= after);
 }
@@ -128,8 +129,8 @@ async fn finished_time_makes_sense() {
 async fn elapsed_time_makes_sense() {
     let job = Job::start(jobs::slow);
     job.wait().await.unwrap();
-    assert!(job.elapsed() >= Duration::from_millis(100));
-    assert!(job.elapsed() <= Duration::from_millis(150));
+    assert!(job.monitor().elapsed() >= Duration::from_millis(100));
+    assert!(job.monitor().elapsed() <= Duration::from_millis(150));
 }
 
 #[tokio::test]
@@ -137,14 +138,14 @@ async fn elapsed_time_is_retained_after_finish() {
     let job = Job::start(jobs::slow);
     job.wait().await.unwrap();
     sleep(Duration::from_millis(200)).await;
-    assert!(job.elapsed() >= Duration::from_millis(100));
-    assert!(job.elapsed() <= Duration::from_millis(150));
+    assert!(job.monitor().elapsed() >= Duration::from_millis(100));
+    assert!(job.monitor().elapsed() <= Duration::from_millis(150));
 }
 
 #[tokio::test]
 async fn elapsed_time_makes_sense_before_finish() {
     let job = Job::start(jobs::slow);
-    assert!(job.elapsed() <= Duration::from_millis(50));
+    assert!(job.monitor().elapsed() <= Duration::from_millis(50));
 }
 
 #[tokio::test]

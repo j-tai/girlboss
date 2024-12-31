@@ -6,8 +6,7 @@ use actix_rt::task::JoinHandle;
 use futures::FutureExt;
 use sealed::sealed;
 
-use crate::common::Job;
-use crate::JobReturnStatus;
+use crate::{JobReturnStatus, Monitor};
 
 /// Represents the actix-rt async runtime.
 pub enum ActixRt {}
@@ -35,10 +34,10 @@ where
     F: Future + 'static,
     F::Output: Into<JobReturnStatus>,
 {
-    fn spawn(self, handle: &ActixRtHandle, job: Job<ActixRt>) {
+    fn spawn(self, handle: &ActixRtHandle, monitor: Monitor) {
         *handle.0.borrow_mut() = Some(actix_rt::spawn(async move {
             let result = AssertUnwindSafe(self).catch_unwind().await;
-            job.set_finished(result);
+            monitor.set_finished(result);
         }));
     }
 }
