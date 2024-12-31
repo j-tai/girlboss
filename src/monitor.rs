@@ -13,6 +13,9 @@ use crate::{JobReturnStatus, JobStatus};
 /// it [`started_at`](Self::started_at) or [`finished_at`](Self::finished_at),
 /// and so on.
 ///
+/// Monitors are not created directly; instead, they are automatically created
+/// alongside a [`Job`](crate::common::Job).
+///
 /// Cloning a `Monitor` is cheap. The cloned `Monitor` represents the same
 /// monitor as the original, so both can be used to query the same job's status.
 ///
@@ -53,11 +56,6 @@ struct JobFinishedInfo {
 }
 
 impl Monitor {
-    /// Returns the latest status message reported to this `Monitor`.
-    pub fn status(&self) -> JobStatus {
-        self.0.status.load()
-    }
-
     /// Reports a new status message to this `Monitor`.
     ///
     /// If your message is already a [`String`] and you are able to give
@@ -76,6 +74,11 @@ impl Monitor {
         }
     }
 
+    /// Returns the latest status message reported to this `Monitor`.
+    pub fn status(&self) -> JobStatus {
+        self.0.status.load()
+    }
+
     /// Returns whether the job finished successfully, or `None` if it is still
     /// in progress.
     ///
@@ -86,7 +89,7 @@ impl Monitor {
     /// This method is guaranteed to return `Some(_)` if and only if
     /// [`self.is_finished()`](Self::is_finished) returns `true` (barring the
     /// fact that the job could have changed from "in progress" to "finished" in
-    /// between two method calls).
+    /// between the two method calls).
     pub fn outcome(&self) -> Option<bool> {
         self.0.finished.get().map(|info| info.is_success)
     }
@@ -125,7 +128,7 @@ impl Monitor {
     /// This method is guaranteed to return `Some(_)` if and only if
     /// [`self.outcome()`](Self::outcome) returns `Some(_)` (barring the fact
     /// that the job could have changed from "in progress" to "finished" in
-    /// between two method calls).
+    /// between the two method calls).
     pub fn finished_at(&self) -> Option<Instant> {
         self.0.finished.get().map(|info| info.finished_at)
     }

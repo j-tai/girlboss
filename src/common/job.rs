@@ -12,10 +12,10 @@ use crate::{Error, JobReturnStatus, JobStatus, Monitor, Result};
 ///
 /// Conceptually, a `Job` is a [`Monitor`] combined with a *join handle*. This
 /// join handle is async-runtime-specific and is used to [`wait`](Self::wait) on
-/// the job to complete. If waiting is not needed, then you may use the job's
-/// [`monitor()`](Self::monitor), which is always `Send + Sync` (whereas, if the
-/// async-runtime-specific join handle is not `Send` or `Sync`, then neither
-/// will the `Job`).
+/// the job to complete. If waiting is not needed, then you may choose to store
+/// the job's [`monitor()`](Self::monitor) rather than the job itself. The
+/// [`Monitor`] is always `Send + Sync`, whereas, if the async-runtime-specific
+/// join handle is not `Send` or `Sync`, then neither is the `Job`.
 pub struct Job<R: Runtime> {
     handle: Arc<R::JobHandle>,
     monitor: Monitor,
@@ -25,10 +25,11 @@ impl<R: Runtime> Job<R> {
     /// Creates and starts a new job.
     ///
     /// The argument is the job function, which is an `async` function that
-    /// takes a [`Monitor`] (for progress reporting) and returns any type that
-    /// implements <code>[Into]&lt;[JobReturnStatus]&gt;</code> (for error
-    /// reporting). See the [`JobReturnStatus` documentation](JobReturnStatus)
-    /// for the complete list of types that the function may return.
+    /// takes this job's [`Monitor`] (for progress reporting) and returns any
+    /// type that implements <code>[Into]&lt;[JobReturnStatus]&gt;</code> (for
+    /// error reporting). See the [`JobReturnStatus`
+    /// documentation](JobReturnStatus) for the complete list of types that the
+    /// function may return.
     ///
     /// # Examples
     ///
@@ -80,7 +81,7 @@ impl<R: Runtime> Job<R> {
     }
 }
 
-// Aliases for the job's monitor
+/// Methods to check the status of a job.
 impl<R: Runtime> Job<R> {
     /// Returns a reference to this job's [`Monitor`]. The monitor can be used
     /// to check for the job status, among other things.
@@ -88,26 +89,23 @@ impl<R: Runtime> Job<R> {
         &self.monitor
     }
 
-    /// Alias of
-    /// <code>self.[monitor](Self::monitor)().[status](Monitor::status)</code>.
+    /// Alias of <code>self.monitor().[status](Monitor::status)()</code>.
     pub fn status(&self) -> JobStatus {
         self.monitor.status()
     }
 
-    /// Alias of
-    /// <code>self.[monitor](Self::monitor)().[outcome](Monitor::outcome)</code>.
+    /// Alias of <code>self.monitor().[outcome](Monitor::outcome)()</code>.
     pub fn outcome(&self) -> Option<bool> {
         self.monitor.outcome()
     }
 
     /// Alias of
-    /// <code>self.[monitor](Self::monitor)().[is_finished](Monitor::is_finished)</code>.
+    /// <code>self.monitor().[is_finished](Monitor::is_finished)()</code>.
     pub fn is_finished(&self) -> bool {
         self.monitor.is_finished()
     }
 
-    /// Alias of
-    /// <code>self.[monitor](Self::monitor)().[succeeded](Monitor::succeeded)</code>.
+    /// Alias of <code>self.monitor().[succeeded](Monitor::succeeded)()</code>.
     pub fn succeeded(&self) -> bool {
         self.monitor.succeeded()
     }
